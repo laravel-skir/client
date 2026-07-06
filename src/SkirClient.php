@@ -6,7 +6,9 @@ namespace LaravelSkir\Client;
 
 use LaravelSkir\Client\Codecs\DenseJsonCodec;
 use LaravelSkir\Client\Codecs\SkirClientCodec;
+use LaravelSkir\Client\Codecs\SkirClientHttpCodec;
 use LaravelSkir\Client\Exceptions\SkirClientException;
+use LaravelSkir\Client\Http\SkirBinaryRpcRequest;
 use LaravelSkir\Client\Http\SkirConnector;
 use LaravelSkir\Client\Http\SkirRpcRequest;
 use LaravelSkir\Runtime\Exceptions\SkirRuntimeException;
@@ -34,7 +36,11 @@ final class SkirClient
 
     public function invoke(MethodDescriptor $descriptor, mixed $request): mixed
     {
-        $response = $this->connector->send(new SkirRpcRequest($descriptor, $request, $this->codec, $this->endpoint));
+        $rpcRequest = $this->codec instanceof SkirClientHttpCodec
+            ? new SkirBinaryRpcRequest($descriptor, $request, $this->codec, $this->endpoint)
+            : new SkirRpcRequest($descriptor, $request, $this->codec, $this->endpoint);
+
+        $response = $this->connector->send($rpcRequest);
 
         if ($response->failed()) {
             throw SkirClientException::failedResponse($descriptor, $response);

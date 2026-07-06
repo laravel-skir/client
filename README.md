@@ -130,12 +130,25 @@ $transport = new SkirClient(
 );
 ```
 
+For binary CBOR endpoints:
+
+```php
+$transport = new SkirClient(
+    baseUrl: 'https://example.com',
+    endpoint: '/api/skir',
+    codec: SkirClientCodecs::cbor(),
+);
+```
+
+CBOR support is optional. Install `spomky-labs/cbor-php` in the consuming app before using `SkirClientCodecs::cbor()` or `SKIR_CLIENT_CODEC=cbor`.
+
 Container configuration supports:
 
 ```env
 SKIR_CLIENT_CODEC=dense_json
 SKIR_CLIENT_CODEC=standard_json
 SKIR_CLIENT_CODEC=base64_dense_json
+SKIR_CLIENT_CODEC=cbor
 ```
 
 The selected client codec must match the server endpoint codec.

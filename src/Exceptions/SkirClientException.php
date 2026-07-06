@@ -42,4 +42,9 @@ final class SkirClientException extends RuntimeException
     {
         return new self("Skir client codec [{$codec}] is not supported.");
     }
+
+    public static function missingCborDependency(): self
+    {
+        return new self('Skir client CBOR support requires the [spomky-labs/cbor-php] Composer package.');
+    }
 }

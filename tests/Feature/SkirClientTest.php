@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace LaravelSkir\Client\Tests\Feature;
 
+use CBOR\Decoder;
+use CBOR\Encoder;
+use CBOR\StringStream;
 use LaravelSkir\Client\Codecs\SkirClientCodecs;
 use LaravelSkir\Client\Exceptions\SkirClientException;
 use LaravelSkir\Client\Http\SkirRpcRequest;
@@ -176,6 +179,58 @@ final class SkirClientTest extends TestCase
                         'id' => 42,
                         'name' => 'Maxim',
                     ])),
+                ];
+        });
+    }
+
+    #[Test]
+    public function it_can_use_cbor_payloads(): void
+    {
+        $userType = Type::struct([
+            Field::value('id', 0, Type::int32()),
+            Field::value('name', 1, Type::string()),
+        ]);
+
+        $mockClient = new MockClient([
+            MockResponse::make(
+                (new Encoder)->encode(DenseJson::encode($userType, [
+                    'id' => 42,
+                    'name' => 'Ruben',
+                ])),
+                200,
+                [
+                    'Content-Type' => 'application/cbor',
+                ],
+            ),
+        ]);
+
+        $client = new SkirClient('https://example.com/api', codec: SkirClientCodecs::cbor());
+        $client->withMockClient($mockClient);
+
+        $result = $client->invoke(
+            new MethodDescriptor('RenameUser', 1002, $userType, $userType),
+            [
+                'id' => 42,
+                'name' => 'Maxim',
+            ],
+        );
+
+        $this->assertSame([
+            'id' => 42,
+            'name' => 'Ruben',
+        ], $result);
+
+        $mockClient->assertSent(function (Request $request) use ($userType): bool {
+            $payload = Decoder::create()
+                ->decode(StringStream::create($request->body()->all()))
+                ->normalize();
+
+            return $request->resolveEndpoint() === '/'
+                && $request->headers()->get('Content-Type') === 'application/cbor'
+                && $payload['method'] === 'RenameUser'
+                && DenseJson::decode($userType, $payload['request']) === [
+                    'id' => 42,
+                    'name' => 'Maxim',
                 ];
         });
     }
